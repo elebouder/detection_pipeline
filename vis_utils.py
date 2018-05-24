@@ -368,11 +368,14 @@ def get_bbox_coords_on_image_array(
   box_to_instance_masks_map = {}
   box_to_instance_boundaries_map = {}
   box_to_keypoints_map = collections.defaultdict(list)
+  scoremap = []
   if not max_boxes_to_draw:
     max_boxes_to_draw = boxes.shape[0]
   for i in range(min(max_boxes_to_draw, boxes.shape[0])):
     if scores is None or scores[i] > min_score_thresh:
       box = tuple(boxes[i].tolist())
+      scr = int(100*scores[i])
+      scoremap.append(scr)
       if instance_masks is not None:
         box_to_instance_masks_map[box] = instance_masks[i]
       if instance_boundaries is not None:
@@ -404,8 +407,14 @@ def get_bbox_coords_on_image_array(
 
   # Draw all boxes onto image.
   bbox_list = []
+
   for box, color in box_to_color_map.items():
     ymin, xmin, ymax, xmax = box
+    im_width, im_height = image.shape[0], image.shape[1]
+    xmin = xmin * im_width
+    xmax = xmax * im_width
+    ymin = ymin * im_height
+    ymax = ymax * im_height
     bbox_list.append([xmin, ymin, xmax, ymax])
-  return bbox_list
+  return bbox_list, scoremap
 

@@ -2,7 +2,7 @@ import numpy
 import os
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_utils
-from sliding_win import scan_control
+from sliding_win_single import scan_control
 import datetime
 import tensorflow as tf
 
@@ -60,11 +60,33 @@ class SceneIterator:
                     print 'starting ', elem, ' ', scene_dir
                     #TODO write to logdir that we are starting this date
                     for scenefile in os.listdir(scene_dir):
+                        if self.already_processed(scenefile):
+                            print 'skipping ' + scenefile
+                            continue
                         #TODO print starting scene to log
                         print 'Beginning scan of ', scenefile, ' in ', scene_dir
                         scan_control(os.path.join(scene_dir, scenefile), self.log, csvfile, self.detection_graph, self.sess, self.categories, self.category_index, self.cwd)
                         print 'Scan complete.  Moving on...'
                         #TODO print to log that scan is complete
+
+
+    def already_processed(self, scene_id):
+        scenes_completed = []
+        with open(self.log, 'r') as f:
+            for l in f:
+                if ".tif" in l:
+                    sid = l.split("/")[-1]
+                    scenes_completed.append(sid)
+
+
+        for elem in scenes_completed:
+            idx = scenes_completed.index(elem)
+            scenes_completed[idx] = elem.split(" ")[0]
+ 
+        if scene_id in scenes_completed:
+            return True
+        else:
+            return False
 
 
     def init_ssd(self):
@@ -98,7 +120,7 @@ class SceneIterator:
         year = im_stripped[9:13]
         julday = im_stripped[13:16]
         month = (datetime.datetime(int(year), 1, 1) + datetime.timedelta(int(julday)-1)).month
-        return [int(year), month]
+        return [month, int(year)]
 
 
     def get_daterange(self):
@@ -136,7 +158,7 @@ def init_pipeline():
     start_date = [1, 2014]
     end_date = [6, 2014]
     single_im = False
-    imgname = 'LC80460222014027LGN00.tif'
+    imgname = 'LC80480192015188LGN00.tif'
     SceneIterator(years_dir, cwd, logfile, data_csv_dir, start_date, end_date, single_im, imgname)
 
 

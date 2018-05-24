@@ -74,7 +74,7 @@ class Scanner:
         self.bands = 3
 
         geotransform = self.src.GetGeoTransform()
-        self.originX = geotransform[0]
+        self.originX = geotransform[0][0.5375039]
         self.originY = geotransform[3]
         self.pixelWidth = geotransform[1]
         self.pixelHeight = geotransform[5]
@@ -102,7 +102,7 @@ class Scanner:
             self.arr = None
             return None
 
-        self.arr = skimage.img_as_float(self.arr)
+        self.arr = skimage.img_as_float(self.arr*2)
         #save_dir = '/home/elebouder/LANDSAT_TF/detection_pipeline/vis/'
         #skimage.io.imsave(save_dir + '{}.png'.format(np.random.random(1)*10), self.arr)
         return self.arr
@@ -114,12 +114,14 @@ class Scanner:
             self.window_x = -1
             self.window_y = -1
             return -1, -1"""
+        """
         if (self.window_y > (self.rows - self.sizey)) and self.window_x == 0:
             self.window_y = (self.rows - self.sizey)
         elif (self.window_y == (self.rows - self.sizey)) and ((self.cols - self.sizex) == self.window_x):
             self.window_y = -1
             self.window_x = -1
-        elif self.window_x < (self.cols - ((self.sizex * 2) - 25)):
+        #elif self.window_x < (self.cols - ((self.sizex * 2) - 25)):
+        elif self.window_x < (self.cols - (self.sizex*2 - 25)):
             self.window_x = self.window_x + (self.sizex - 25)
             self.window_y = self.window_y
         # FIXME hacky conditional for proceding to next y row
@@ -127,12 +129,36 @@ class Scanner:
             self.window_x = 0
             self.window_y += self.sizey - 25
         elif (self.cols - 25) > self.window_x > (self.cols - (self.sizex * 2)):
-            self.window_x = self.cols - self.sizex
+            self.window_x = self.cols - self.sizex[0.5375039]
         print self.window_x, self.window_y
+
+        return self.window_x, self.window_y"""
+
+        if self.xwindow_canstep():
+            self.window_x = self.window_x + (self.sizex - 25)
+        elif self.ywindow_canstep():
+            self.window_x = 0
+            self.window_y = self.window_y + (self.sizey -25)
+        else:
+            self.window_x = -1
+            self.window_y = -1
 
         return self.window_x, self.window_y
 
 
+    def xwindow_canstep(self):
+        distance_left = self.cols - (self.window_x + self.sizex)
+        if distance_left < (sizex - 25):
+            return False
+        else:
+            return True
+ 
+    def ywindow_canstep(self):
+        distance_left = self.rows - (self.window_x + self.sizey)
+        if distance_left < (sizey - 25):
+            return False
+        else:
+            return True
 
     def get_pad_img_coords(self, xoff, yoff, i):
         stepx = (i % self.batchx) * 25 - 25
@@ -259,7 +285,7 @@ class DataTraffic:
                 if np.amax(arr) == np.amin(arr):
                     continue
                 #save_dir = '/home/elebouder/LANDSAT_TF/detection_pipeline/vis/'
-                #skimage.io.imsave(save_dir + '{}.png'.format(np.random.random(1)*10), arr)
+                #skimage.io.imsave(save_dir + 'prenet{}.png'.format(np.random.random(1)*10), arr)
                 skimage.io.imsave(self.cwd + 'temp.png', arr)
                 arr = cv2.imread(self.cwd + 'temp.png')
                 #if skimage.exposure.is_low_contrast(arr):
@@ -274,7 +300,7 @@ class DataTraffic:
                 #    print detections
 
                 #TODO can vis detection here with call to visualizer method
-                #self.vis_detections(arr, boxes, scores, classes) 
+                self.vis_detections(arr, boxes, scores, classes) 
 		bbox_array = vis_utils.get_bbox_coords_on_image_array(arr,
     							np.squeeze(boxes),
     							np.squeeze(classes).astype(np.int32),
@@ -293,36 +319,51 @@ class DataTraffic:
             self.idy_win_out = y
 
 
+    def calc_centroid(self, elem):
+        xmin = elem[0]
+        ymin = elem[1]
+        xmax = elem[2]
+        ymax = elem[3]
+
+        cx = (xmin + xmax)/2
+        cy = (ymin + ymax)/2
+        return cx, cy
+
+
+
     def write_coords(self, hitlist):
         print len(hitlist)
         print 'writing hitlist'
         with open(self.logfile, 'a') as f:
             f.write('# of hits: ' + str(len(hitlist)))
-        fieldnames = ['xmin', 'ymin', 'xmax', 'ymax']
+        fieldnames = ['xmin', 'ymin', 'xmax', 'ymax', 'c_x', 'c_y']
         with open(self.csv, 'a') as fille:
             writer = csv.DictWriter(fille, fieldnames=fieldnames)
             writer.writeheader()
             for elem in hitlist:
                 print elem
+                cx, cy = self.calc_centroid(elem)
                 xmin = elem[0]
                 ymin = elem[1]
                 xmax = elem[2]
                 ymax = elem[3]
-                writer.writerow({'xmin': xmin, 'ymin': ymin, 'xmax': xmax, 'ymax': ymax})
+                writer.writerow({'xmin': xmin, 'ymin': ymin, 'xmax': xmax, 'ymax': ymax, 'c_x': cx, 'c_y': cy})
 
 
-    def vis_detections(self, arr, boxes, classes, scores):
+    def vis_detections(self, arr, boxes, scores, classes):
+        save_dir = '/home/elebouder/LANDSAT_TF/detection_pipeline/vis/'
+        #cv2.imwrite(save_dir + '{}.png'.format(np.random.random(1)*10), arr)
+
+
         vis_utils_ori.visualize_boxes_and_labels_on_image_array(arr,
                                                         np.squeeze(boxes),
                                                         np.squeeze(classes).astype(np.int32),
                                                         np.squeeze(scores),
                                                         self.category_index,
                                                         use_normalized_coordinates=True,
-                                                        line_thickness=8,
-                                                        min_score_thresh=0.80)
+                                                        line_thickness=3,
+                                                        min_score_thresh=0.60)
  
-        save_dir = '/home/elebouder/LANDSAT_TF/detection_pipeline/vis/'
-        #scipy.misc.toimage(imvis).save(save_dir + '{}.png'.format(np.random.random(1)*10))
         cv2.imwrite(save_dir + '{}.png'.format(np.random.random(1)*10), arr)
         #plt.figure()
         #plt.imshow(arr)

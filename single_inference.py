@@ -1,3 +1,4 @@
+import vis_utils as vu
 from object_detection.utils import visualization_utils as vis_utils
 from object_detection.utils import label_map_util
 import matplotlib.pyplot as plt
@@ -8,7 +9,7 @@ import tensorflow as tf
 
 cwd = os.getcwd()
 
-PATH_TO_IMAGE = cwd + '/vis/[9.75037548].png'
+PATH_TO_IMAGE = cwd + '/[9.47899497].png'
 PATH_TO_CKPT = cwd + '/frozen_model/frozen_inference_graph.pb'
 PATH_TO_LABELS = cwd + '/lsat_label_map.pbtxt'
 NUM_CLASSES = 1
@@ -40,17 +41,31 @@ image_expanded = np.expand_dims(image, axis=0)
 (boxes, scores, classes, num) = sess.run([detection_boxes, detection_scores, detection_classes, num_detections], feed_dict={image_tensor: image_expanded})
 
 print PATH_TO_IMAGE
-print ([category_index.get(value) for index,value in enumerate(classes[0]) if scores[0,index] > 0.5])
-
+#print ([category_index.get(value) for index,value in enumerate(classes[0]) if scores[0,index] > 0.5])
+for index, value in enumerate(classes[0]):
+    if scores[0, index] > 0.5:
+        print category_index.get(value)
+        print scores
+        print scores[0, index]
 vis_utils.visualize_boxes_and_labels_on_image_array(image,
                                                         np.squeeze(boxes),
                                                         np.squeeze(classes).astype(np.int32),
                                                         np.squeeze(scores),
                                                         category_index,
                                                         use_normalized_coordinates=True,
-                                                        line_thickness=8,
-                                                        min_score_thresh=0.80)
+                                                        line_thickness=5,
+                                                        min_score_thresh=0.50)
 
+box, scoremaps = vu.get_bbox_coords_on_image_array(image,
+                                  np.squeeze(boxes),
+                                  np.squeeze(classes).astype(np.int32),
+                                  np.squeeze(scores),
+                                  category_index,
+                                  use_normalized_coordinates=True,
+                                  line_thickness=5,
+                                  min_score_thresh=0.50)
+
+print scoremaps
 
 #cv2.imshow('detection', image)
 cv2.imwrite(cwd + '/test.png', image)
