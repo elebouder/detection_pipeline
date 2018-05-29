@@ -74,7 +74,7 @@ class Scanner:
         self.bands = 3
 
         geotransform = self.src.GetGeoTransform()
-        self.originX = geotransform[0][0.5375039]
+        self.originX = geotransform[0]
         self.originY = geotransform[3]
         self.pixelWidth = geotransform[1]
         self.pixelHeight = geotransform[5]
@@ -102,9 +102,10 @@ class Scanner:
             self.arr = None
             return None
 
-        self.arr = skimage.img_as_float(self.arr*2)
+        self.arr = skimage.img_as_float(self.arr)
         #save_dir = '/home/elebouder/LANDSAT_TF/detection_pipeline/vis/'
         #skimage.io.imsave(save_dir + '{}.png'.format(np.random.random(1)*10), self.arr)
+        
         return self.arr
 
     # @profile
@@ -148,14 +149,14 @@ class Scanner:
 
     def xwindow_canstep(self):
         distance_left = self.cols - (self.window_x + self.sizex)
-        if distance_left < (sizex - 25):
+        if distance_left < (self.sizex - 25):
             return False
         else:
             return True
  
     def ywindow_canstep(self):
         distance_left = self.rows - (self.window_x + self.sizey)
-        if distance_left < (sizey - 25):
+        if distance_left < (self.sizey - 25):
             return False
         else:
             return True
@@ -173,19 +174,13 @@ class Scanner:
 
         return x2, y2
 
-    #TODO handle whatis x y
-    def get_detection_coords(self, i, xoff, yoff, corners):
+
+    def get_detection_coords(self, xoff, yoff, corners):
         xmin, ymin, xmax, ymax = corners
-        imx = (i % self.batchx) * 25
-        imy = (math.floor(i/self.batchx)) * 25
-        stepxmin = imx + xmin
-        stepxmax = imx + xmax
-        stepymin = imy + ymin
-        stepymax = imy + ymax
-        xoffmin = xoff + stepxmin
-        xoffmax = xoff + stepxmax
-        yoffmin = yoff + stepymin
-        yoffmax = yoff + stepxmax
+        xoffmin = xoff + xmin
+        xoffmax = xoff + xmax
+        yoffmin = yoff + ymin
+        yoffmax = yoff + xmax
         
 
         gt = self.src.GetGeoTransform()
@@ -200,32 +195,6 @@ class Scanner:
 
         return [x21, y21, x22, y22]
 
-
-
-    # @profile
-    def getslices(self):
-
-        self.arrlst = []
-        #self.disp_arrlst = []
-        iy = 0
-        stepx = 25
-        stepy = 25
-        for n in range(self.batchy):
-            ix = 0
-            for i in range(self.batchx):
-                temp = self.arr[iy:(iy+50), ix:(ix+50), :]
-                #self.disp_arrlst.append(self.disp_arr[iy:(iy+50), ix:(ix+50), :])
-                self.arrlst.append(temp)
-                ix += stepx
-            iy += stepy
-        return self.arrlst
-
-    def getdispslice(self, i):
-
-        # ix = (i * 25) - 1
-        i = self.arrlst[i]
-
-        return i
 
     def close(self):
         self.src = None
@@ -257,7 +226,7 @@ class DataTraffic:
         self.detection_scores = self.detectiongraph.get_tensor_by_name('detection_scores:0')
         self.detection_classes = self.detectiongraph.get_tensor_by_name('detection_classes:0')
         self.num_detections = self.detectiongraph.get_tensor_by_name('num_detections:0')
-
+        self.starttime = time.time()
         self.net_io_control()
 
     # @profile
@@ -277,31 +246,29 @@ class DataTraffic:
                 self.idx_win_out = x
                 self.idy_win_out = y
                 continue
-            arrlist = self.scanobj.getslices()
-            len_list = len(arrlist)
-            for arr,i in zip(arrlist, range(len_list)):
+            arr = datum
+            for i in [1]:
                 #print np.amax(arr)
                 #print np.amin(arr)
                 if np.amax(arr) == np.amin(arr):
                     continue
                 #save_dir = '/home/elebouder/LANDSAT_TF/detection_pipeline/vis/'
                 #skimage.io.imsave(save_dir + 'prenet{}.png'.format(np.random.random(1)*10), arr)
-                skimage.io.imsave(self.cwd + 'temp.png', arr)
-                arr = cv2.imread(self.cwd + 'temp.png')
+                skimage.io.imsave(self.cwd + '/temp.png', arr)
+                arr = cv2.imread(self.cwd + '/temp.png')
                 #if skimage.exposure.is_low_contrast(arr):
                 #    continue
                 input_data = np.expand_dims(arr, 0)
 		(boxes, scores, classes, num) = self.sess.run([self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections], feed_dict={self.image_tensor: input_data})
                 
-                detections = ([self.category_index.get(value) for index,value in enumerate(classes[0]) if scores[0,index] > 0.5])
+                detections = ([self.category_index.get(value) for index,value in enumerate(classes[0]) if scores[0,index] > 0.8])
 
-
+                
                 #if detections:
-                #    print detections
-
-                #TODO can vis detection here with call to visualizer method
-                self.vis_detections(arr, boxes, scores, classes) 
-		bbox_array = vis_utils.get_bbox_coords_on_image_array(arr,
+                    #print detections
+                    #self.vis_detections(arr, boxes, scores, classes) 
+		
+                bbox_array, scoremap = vis_utils.get_bbox_coords_on_image_array(arr,
     							np.squeeze(boxes),
     							np.squeeze(classes).astype(np.int32),
     							np.squeeze(scores),
@@ -309,10 +276,11 @@ class DataTraffic:
     							use_normalized_coordinates=True,
     							line_thickness=8,
 							min_score_thresh=0.80)
-	        for elem in bbox_array:
+	        for elem, score in zip(bbox_array, scoremap):
                     
-                    fourcoords = self.scanobj.get_detection_coords(i, self.idx_win_out, self.idy_win_out, elem)
+                    fourcoords = self.scanobj.get_detection_coords(self.idx_win_out, self.idy_win_out, elem)
 		    #print fourcoords
+                    fourcoords.append(score)
                     self.hitlist.append(fourcoords)	
             x, y = self.scanobj.next_window(self.count)
             self.idx_win_out = x
@@ -334,9 +302,13 @@ class DataTraffic:
     def write_coords(self, hitlist):
         print len(hitlist)
         print 'writing hitlist'
+        elapsed = time.time() - self.starttime
+        print elapsed
         with open(self.logfile, 'a') as f:
-            f.write('# of hits: ' + str(len(hitlist)))
-        fieldnames = ['xmin', 'ymin', 'xmax', 'ymax', 'c_x', 'c_y']
+            f.write("Scene completed:\n" + self.inputim + "\n")
+            f.write("# of hits: " + str(len(hitlist)) + " \n")
+            f.write("Time elapsed: " + str(elapsed/60) + "\n")
+        fieldnames = ['xmin', 'ymin', 'xmax', 'ymax', 'c_x', 'c_y', 'confidence', 'scene']
         with open(self.csv, 'a') as fille:
             writer = csv.DictWriter(fille, fieldnames=fieldnames)
             writer.writeheader()
@@ -347,7 +319,9 @@ class DataTraffic:
                 ymin = elem[1]
                 xmax = elem[2]
                 ymax = elem[3]
-                writer.writerow({'xmin': xmin, 'ymin': ymin, 'xmax': xmax, 'ymax': ymax, 'c_x': cx, 'c_y': cy})
+                score = elem[4]
+                sid = self.inputim.split("/")[-1]
+                writer.writerow({'xmin': xmin, 'ymin': ymin, 'xmax': xmax, 'ymax': ymax, 'c_x': cx, 'c_y': cy, 'confidence': score, 'scene': sid})
 
 
     def vis_detections(self, arr, boxes, scores, classes):
@@ -362,7 +336,7 @@ class DataTraffic:
                                                         self.category_index,
                                                         use_normalized_coordinates=True,
                                                         line_thickness=3,
-                                                        min_score_thresh=0.60)
+                                                        min_score_thresh=0.80)
  
         cv2.imwrite(save_dir + '{}.png'.format(np.random.random(1)*10), arr)
         #plt.figure()
@@ -370,11 +344,11 @@ class DataTraffic:
         #plt.savefig(save_dir + '{}.png'.format(np.random.random(1)*10))
 
 def scan_control(scene, logfile, csv, detectiongraph, sess, categories, category_index, cwd):
-    batch = 1024
-    batchx = 16
-    batchy = 64
-    with open(logfile, 'a') as f:
-        f.write('Starting scene ' + scene)
+    batch = 1
+    batchx = 1
+    batchy = 1
+    #with open(logfile, 'a') as f:
+    #    f.write("\nStarting scene\n" + scene + " \n")
     scanobj = Scanner(scene, batchx, batchy)
     DataTraffic(detectiongraph, sess, scene, scanobj, batch, csv, logfile, categories, category_index, cwd)
 
