@@ -1,1 +1,1 @@
-'Tis a repo!
+This branch is dedicated to reducing pipeline computational cost by allowing for batch inference of the ssd graph on batch scans, and accurate localization and coordinate projection based on these batch inferences.
