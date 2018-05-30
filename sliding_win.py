@@ -40,8 +40,6 @@ class Scanner:
         self.window_x = 0
         self.window_y = 0
         self.stop = 0
-        print self.rows
-
 
 
     def get_proj(self):
@@ -110,30 +108,6 @@ class Scanner:
 
     # @profile
     def next_window(self, count):
-        """if count >= 5:
-            print 'limit reached'
-            self.window_x = -1
-            self.window_y = -1
-            return -1, -1"""
-        """
-        if (self.window_y > (self.rows - self.sizey)) and self.window_x == 0:
-            self.window_y = (self.rows - self.sizey)
-        elif (self.window_y == (self.rows - self.sizey)) and ((self.cols - self.sizex) == self.window_x):
-            self.window_y = -1
-            self.window_x = -1
-        #elif self.window_x < (self.cols - ((self.sizex * 2) - 25)):
-        elif self.window_x < (self.cols - (self.sizex*2 - 25)):
-            self.window_x = self.window_x + (self.sizex - 25)
-            self.window_y = self.window_y
-        # FIXME hacky conditional for proceding to next y row
-        elif (self.cols - self.sizex) == self.window_x:
-            self.window_x = 0
-            self.window_y += self.sizey - 25
-        elif (self.cols - 25) > self.window_x > (self.cols - (self.sizex * 2)):
-            self.window_x = self.cols - self.sizex[0.5375039]
-        print self.window_x, self.window_y
-
-        return self.window_x, self.window_y"""
 
         if self.xwindow_canstep():
             self.window_x = self.window_x + (self.sizex - 25)
@@ -141,6 +115,7 @@ class Scanner:
             self.window_x = 0
             self.window_y = self.window_y + (self.sizey -25)
         else:
+            print "Scanner Out of Range"
             self.window_x = -1
             self.window_y = -1
 
@@ -155,13 +130,13 @@ class Scanner:
             return True
  
     def ywindow_canstep(self):
-        distance_left = self.rows - (self.window_x + self.sizey)
+        distance_left = self.rows - (self.window_y + self.sizey)
         if distance_left < (self.sizey - 25):
             return False
         else:
             return True
 
-    def get_pad_img_coords(self, xoff, yoff, i):
+    """def get_pad_img_coords(self, xoff, yoff, i):
         stepx = (i % self.batchx) * 25 - 25
         stepy = (math.floor(i / self.batchx)) * 25 - 25
         xoff += stepx
@@ -172,15 +147,24 @@ class Scanner:
         my = gt[3] + yoff * gt[5]
         x2, y2 = pyproj.transform(self.pproj, self.praw, mx, my)
 
-        return x2, y2
+        return x2, y2"""
+
+    def get_intrabatch_offsets(self, i):
+        
+        idx = i % self.batchx
+        idy = int(i / self.batchx)
+        batch_offsetx = (idx * self.sizex)
+        batch_offsety = (idy * self.sizey)
+        return batch_offsetx, batch_offsety
 
 
-    def get_detection_coords(self, xoff, yoff, corners):
+    def get_detection_coords(self, xoff, yoff, corners, i):
         xmin, ymin, xmax, ymax = corners
-        xoffmin = xoff + xmin
-        xoffmax = xoff + xmax
-        yoffmin = yoff + ymin
-        yoffmax = yoff + xmax
+        boffx, boffy = self.get_intrabatch_offsets(i)
+        xoffmin = xoff + xmin + boffx
+        xoffmax = xoff + xmax + boffx
+        yoffmin = yoff + ymin + boffy
+        yoffmax = yoff + xmax + boffy
         
 
         gt = self.src.GetGeoTransform()
@@ -194,6 +178,24 @@ class Scanner:
 
 
         return [x21, y21, x22, y22]
+
+
+
+    # @profile
+    def getslices(self, datum):
+        self.arrlst = []
+        iy = 0
+        stepx = 25
+        stepy = 25
+        for n in range(self.batchy):
+            ix = 0
+            for i in range(self.batchx):
+                temp = self.arr[iy:(iy+50), ix:(ix+50), :]
+                self.arrlst.append(temp)
+                ix += stepx
+            iy += stepy
+
+        return self.arrlst
 
 
     def close(self):
@@ -246,28 +248,32 @@ class DataTraffic:
                 self.idx_win_out = x
                 self.idy_win_out = y
                 continue
-            arr = datum
-            for i in [1]:
-                #print np.amax(arr)
-                #print np.amin(arr)
-                if np.amax(arr) == np.amin(arr):
-                    continue
+            skimage.io.imsave(self.cwd + '/temp.png', datum)
+            nextarr = cv2.imread(self.cwd + '/temp.png')
+            arrlist = self.scanobj.getslices(datum)
+            #nlist = []
+            #for elem in arrlist:
                 #save_dir = '/home/elebouder/LANDSAT_TF/detection_pipeline/vis/'
-                #skimage.io.imsave(save_dir + 'prenet{}.png'.format(np.random.random(1)*10), arr)
-                skimage.io.imsave(self.cwd + '/temp.png', arr)
-                arr = cv2.imread(self.cwd + '/temp.png')
-                #if skimage.exposure.is_low_contrast(arr):
-                #    continue
-                input_data = np.expand_dims(arr, 0)
-		(boxes, scores, classes, num) = self.sess.run([self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections], feed_dict={self.image_tensor: input_data})
-                
-                detections = ([self.category_index.get(value) for index,value in enumerate(classes[0]) if scores[0,index] > 0.8])
+                #skimage.io.imsave(save_dir + '{}.png'.format(np.random.random(1)*10), elem)
+                #skimage.io.imsave(self.cwd + '/temp.png', elem)
+                #n = cv2.imread(self.cwd + '/temp.png')
+                #nlist.append(n)
+            #arrlist = nlist
+            #TODO remove and account for individual tiles in this arr that are blank, 
+            # use np.amax(arr) == np.amin(arr)
+            #NOTE with an input arr.len > 1, the tensor has 4 dims and so np.expand_dims not needed
+            (boxset, scoreset, classet, num) = self.sess.run([self.detection_boxes, self.detection_scores, self.detection_classes, self.num_detections], feed_dict={self.image_tensor: arrlist})
 
+            
+	    for boxes, classes, scores, arr, i in zip(boxset, classet, scoreset, arrlist, range(len(arrlist))):
                 
-                #if detections:
-                    #print detections
-                    #self.vis_detections(arr, boxes, scores, classes) 
-		
+                detections = ([self.category_index.get(value) for index,value in enumerate(classet[0]) if scoreset[0,index] > 0.8])
+
+                if detections:
+                    print detections
+                    self.vis_detections(arr, boxes, scores, classes)
+
+
                 bbox_array, scoremap = vis_utils.get_bbox_coords_on_image_array(arr,
     							np.squeeze(boxes),
     							np.squeeze(classes).astype(np.int32),
@@ -278,7 +284,7 @@ class DataTraffic:
 							min_score_thresh=0.80)
 	        for elem, score in zip(bbox_array, scoremap):
                     
-                    fourcoords = self.scanobj.get_detection_coords(self.idx_win_out, self.idy_win_out, elem)
+                    fourcoords = self.scanobj.get_detection_coords(self.idx_win_out, self.idy_win_out, elem, i)
 		    #print fourcoords
                     fourcoords.append(score)
                     self.hitlist.append(fourcoords)	
@@ -344,9 +350,9 @@ class DataTraffic:
         #plt.savefig(save_dir + '{}.png'.format(np.random.random(1)*10))
 
 def scan_control(scene, logfile, csv, detectiongraph, sess, categories, category_index, cwd):
-    batch = 1
-    batchx = 1
-    batchy = 1
+    batch = 50
+    batchx = 5
+    batchy = 10
     #with open(logfile, 'a') as f:
     #    f.write("\nStarting scene\n" + scene + " \n")
     scanobj = Scanner(scene, batchx, batchy)

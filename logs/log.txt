@@ -196,3 +196,43 @@ Scene completed:
 /media/elebouder/New Volume/Fracking Data/RGB Scenes Ready for Site-Lifting/2_2014/LC80500222014055LGN00.tif
 # of hits: 60639 
 Time elapsed: 36.3024929682
+Scene completed:
+/media/elebouder/New Volume/Fracking Data/RGB Scenes Ready for Site-Lifting/7_2015/LC80480192015188LGN00.tif
+# of hits: 0 
+Time elapsed: 0.0363373835882
+Scene completed:
+/media/elebouder/New Volume/Fracking Data/RGB Scenes Ready for Site-Lifting/7_2015/LC80480192015188LGN00.tif
+# of hits: 0 
+Time elapsed: 0.0352830688159
+Scene completed:
+/media/elebouder/New Volume/Fracking Data/RGB Scenes Ready for Site-Lifting/7_2015/LC80480192015188LGN00.tif
+# of hits: 0 
+Time elapsed: 0.0357179999352
+Scene completed:
+/media/elebouder/New Volume/Fracking Data/RGB Scenes Ready for Site-Lifting/7_2015/LC80480192015188LGN00.tif
+# of hits: 0 
+Time elapsed: 0.0365362524986
+Scene completed:
+/media/elebouder/New Volume/Fracking Data/RGB Scenes Ready for Site-Lifting/7_2015/LC80480192015188LGN00.tif
+# of hits: 0 
+Time elapsed: 0.0354694485664
+Scene completed:
+/media/elebouder/New Volume/Fracking Data/RGB Scenes Ready for Site-Lifting/7_2015/LC80480192015188LGN00.tif
+# of hits: 0 
+Time elapsed: 0.0347692330678
+Scene completed:
+/media/elebouder/New Volume/Fracking Data/RGB Scenes Ready for Site-Lifting/7_2015/LC80480192015188LGN00.tif
+# of hits: 0 
+Time elapsed: 0.0354188481967
+Scene completed:
+/media/elebouder/New Volume/Fracking Data/RGB Scenes Ready for Site-Lifting/7_2015/LC80480192015188LGN00.tif
+# of hits: 0 
+Time elapsed: 15.4267016331
+Scene completed:
+/media/elebouder/New Volume/Fracking Data/RGB Scenes Ready for Site-Lifting/7_2015/LC80480192015188LGN00.tif
+# of hits: 5063 
+Time elapsed: 18.8638164997
+Scene completed:
+/media/elebouder/New Volume/Fracking Data/RGB Scenes Ready for Site-Lifting/2_2015/LC80490202015035LGN00.tif
+# of hits: 0 
+Time elapsed: 16.2581449151

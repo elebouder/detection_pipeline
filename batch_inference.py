@@ -9,7 +9,8 @@ import tensorflow as tf
 
 cwd = os.getcwd()
 
-PATH_TO_IMAGE = cwd + '/[1.60330932].png'
+IMAGE1 = cwd + '/[1.60330932].png'
+IMAGE2 = cwd + '/[8.55923372].png'
 PATH_TO_CKPT = cwd + '/frozen_model/frozen_inference_graph.pb'
 PATH_TO_LABELS = cwd + '/lsat_label_map.pbtxt'
 NUM_CLASSES = 1
@@ -36,18 +37,21 @@ detection_scores = detection_graph.get_tensor_by_name('detection_scores:0')
 detection_classes = detection_graph.get_tensor_by_name('detection_classes:0')
 num_detections = detection_graph.get_tensor_by_name('num_detections:0')
 
-image = cv2.imread(PATH_TO_IMAGE)
-image_expanded = np.expand_dims(image, axis=0)
-(boxes, scores, classes, num) = sess.run([detection_boxes, detection_scores, detection_classes, num_detections], feed_dict={image_tensor: image_expanded})
+image1 = cv2.imread(IMAGE1)
+image2 = cv2.imread(IMAGE2)
+image_expanded = [image1, image2]
 
-print PATH_TO_IMAGE
+(boxset, scoreset, classet, num) = sess.run([detection_boxes, detection_scores, detection_classes, num_detections], feed_dict={image_tensor: image_expanded})
+
 #print ([category_index.get(value) for index,value in enumerate(classes[0]) if scores[0,index] > 0.5])
-for index, value in enumerate(classes[0]):
-    if scores[0, index] > 0.5:
+for index, value in enumerate(classet[0]):
+    if scoreset[0, index] > 0.5:
         print category_index.get(value)
-        print scores
-        print scores[0, index]
-vis_utils.visualize_boxes_and_labels_on_image_array(image,
+        print scoreset
+        print scoreset[0, index]
+disp_imgs = []
+for boxes, classes, scores, image in zip(boxset, classet, scoreset, image_expanded):
+    vis_utils.visualize_boxes_and_labels_on_image_array(image,
                                                         np.squeeze(boxes),
                                                         np.squeeze(classes).astype(np.int32),
                                                         np.squeeze(scores),
@@ -56,7 +60,7 @@ vis_utils.visualize_boxes_and_labels_on_image_array(image,
                                                         line_thickness=5,
                                                         min_score_thresh=0.50)
 
-box, scoremaps = vu.get_bbox_coords_on_image_array(image,
+    box, scoremaps = vu.get_bbox_coords_on_image_array(image,
                                   np.squeeze(boxes),
                                   np.squeeze(classes).astype(np.int32),
                                   np.squeeze(scores),
@@ -65,7 +69,8 @@ box, scoremaps = vu.get_bbox_coords_on_image_array(image,
                                   line_thickness=5,
                                   min_score_thresh=0.50)
 
-print scoremaps
-
-#cv2.imshow('detection', image)
-cv2.imwrite(cwd + '/test2.png', image)
+    print scoremaps
+    disp_imgs.append(image)
+    #cv2.imshow('detection', image)
+cv2.imwrite(cwd + '/test11.png', disp_imgs[0])
+cv2.imwrite(cwd + '/test12.png', disp_imgs[1])

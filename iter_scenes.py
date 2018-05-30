@@ -2,7 +2,7 @@ import numpy
 import os
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_utils
-from sliding_win_single import scan_control
+from sliding_win import scan_control
 import datetime
 import tensorflow as tf
 
@@ -157,8 +157,8 @@ def init_pipeline():
     data_csv_dir = '/home/elebouder/Data/landsat/detection_csv'
     start_date = [1, 2014]
     end_date = [6, 2014]
-    single_im = False
-    imgname = 'LC80480192015188LGN00.tif'
+    single_im = True
+    imgname = 'LC80490202015035LGN00.tif'
     SceneIterator(years_dir, cwd, logfile, data_csv_dir, start_date, end_date, single_im, imgname)
 
 
