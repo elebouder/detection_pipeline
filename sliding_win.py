@@ -40,6 +40,8 @@ class Scanner:
         self.window_x = 0
         self.window_y = 0
         self.stop = 0
+        print self.sizex
+        print self.sizey
 
 
     def get_proj(self):
@@ -100,7 +102,7 @@ class Scanner:
             self.arr = None
             return None
 
-        self.arr = skimage.img_as_float(self.arr)
+        #self.arr = skimage.img_as_float(self.arr)
         #save_dir = '/home/elebouder/LANDSAT_TF/detection_pipeline/vis/'
         #skimage.io.imsave(save_dir + '{}.png'.format(np.random.random(1)*10), self.arr)
         
@@ -231,6 +233,15 @@ class DataTraffic:
         self.starttime = time.time()
         self.net_io_control()
 
+
+    def getstats(self, arr):
+        l1 = 0.00
+        l2 = 0.00
+        for elem in arr:
+            l1 += max(elem, -elem)
+            l2 += elem**2
+        return l1, l2
+
     # @profile
     def net_io_control(self):
         while self.keepgoing:
@@ -248,9 +259,20 @@ class DataTraffic:
                 self.idx_win_out = x
                 self.idy_win_out = y
                 continue
-            skimage.io.imsave(self.cwd + '/temp.png', datum)
-            nextarr = cv2.imread(self.cwd + '/temp.png')
+            #dflat = list(datum.flat)
+            #dl1, dl2 = self.getstats(dflat)
+            #skimage.io.imsave(self.cwd + '/temp.png', datum)
+            #nextarr = cv2.imread(self.cwd + '/temp.png')
+            #nflat = list(nextarr.flat)
+            #nl1, nl2 = self.getstats(nflat)
             arrlist = self.scanobj.getslices(datum)
+            #if (dl1 != nl1) or (dl2 != nl2):
+            #    print'=========================='
+            #    print 'l1: ', dl1, '   ', nl1
+            #    print 'l2: ', dl2, '   ', nl2
+            #else:
+            #    print '+++++++++++++++++'
+            #    print 'MATCH'
             #nlist = []
             #for elem in arrlist:
                 #save_dir = '/home/elebouder/LANDSAT_TF/detection_pipeline/vis/'

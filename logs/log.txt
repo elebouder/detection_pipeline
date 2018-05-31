@@ -236,3 +236,11 @@ Scene completed:
 /media/elebouder/New Volume/Fracking Data/RGB Scenes Ready for Site-Lifting/2_2015/LC80490202015035LGN00.tif
 # of hits: 0 
 Time elapsed: 16.2581449151
+Scene completed:
+/media/elebouder/New Volume/Fracking Data/RGB Scenes Ready for Site-Lifting/2_2015/LC80490202015035LGN00.tif
+# of hits: 0 
+Time elapsed: 14.323451515
+Scene completed:
+/media/elebouder/New Volume/Fracking Data/RGB Scenes Ready for Site-Lifting/2_2015/LC80490202015035LGN00.tif
+# of hits: 55628 
+Time elapsed: 14.9868744175
